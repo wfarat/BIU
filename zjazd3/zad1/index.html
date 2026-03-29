@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <title>Biblioteka Filmów</title>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+<script>
+    const FILMS = [
+        { id: 1, title: 'Oppenheimer',       year: 2023, genre: 'Dramat',  rating: 5, watched: true  },
+        { id: 2, title: 'Dune: Część druga', year: 2024, genre: 'Sci-Fi',  rating: 4, watched: false },
+        { id: 3, title: 'Past Lives',        year: 2023, genre: 'Romans',  rating: 5, watched: true  },
+        { id: 4, title: 'Poor Things',       year: 2023, genre: 'Komedia', rating: 4, watched: false },
+    ];
+
+   function RatingStars({ rating }) {
+        const full = '★'.repeat(rating);
+        const empty = '☆'.repeat(5 - rating);
+        return React.createElement('span', null, full + empty);
+    }
+
+    const testStars = React.createElement('span', null, '★★★☆☆');
+    console.log('Test elementu <span>:', testStars);
+    console.log('Test elementu <span>.type:', testStars.type);
+    console.log(testStars.type instanceof Function ? "Jest funkcja" : "Nie jest funkcja")
+    function FilmCard({ title, year, genre, rating, watched }) {
+        return React.createElement(
+            'div',
+            { style: { border: '1px solid #ccc', padding: '10px', margin: '10px' } },
+            React.createElement('h3', null, `${title} (${year})`),
+            React.createElement('span', null, genre),
+            React.createElement('div', null, React.createElement(RatingStars, { rating })),
+            watched ? React.createElement('p', null, '✓ Obejrzany') : null
+        );
+    }
+
+    const testFilmCard = React.createElement(FilmCard, {
+        title: 'Test',
+        year: 2024,
+        genre: 'Dramat',
+        rating: 3,
+        watched: false
+    });
+    console.log('Test FilmCard:', testFilmCard);
+    console.log('Test FilmCard.$$typeof:', testFilmCard.$$typeof);
+    console.log(testFilmCard.type instanceof Function ? "Jest funkcja" : "Nie jest funkcja")
+    function App() {
+        return React.createElement(
+            'div',
+            null,
+            React.createElement('h1', null, '🎬 Biblioteka Filmów'),
+            FILMS.map(film =>
+                React.createElement(FilmCard, {
+                    key: film.id,
+                    title: film.title,
+                    year: film.year,
+                    genre: film.genre,
+                    rating: film.rating,
+                    watched: film.watched
+                })
+            )
+        );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+</script>
+</body>
+</html>
