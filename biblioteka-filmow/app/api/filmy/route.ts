@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         }
 
         const newFilm = result.data;
-        FILMS.push({id: 5, ...newFilm, genre: newFilm.genre as Genre});
+        FILMS.push({id: FILMS.reduce((acc, film) => acc < film.id ? film.id : acc,0)+1, ...newFilm, genre: newFilm.genre as Genre});
         return Response.json(newFilm, { status: 201 });
 
     } catch (err) {
