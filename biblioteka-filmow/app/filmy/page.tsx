@@ -1,25 +1,15 @@
 'use client'
-import { useState, useEffect, useRef } from 'react';
+import {useRef} from 'react';
 import Link from 'next/link';
-import {useFetch} from "@/app/hooks/useFetch";
-import {Film} from "@/types/film";
+import {useFilmDispatch, useFilmState} from "@/app/context/FilmContext";
 
 export default function FilmyPage() {
-    const [refreshKey, setRefreshKey] = useState(0);
-    const [searchQuery, setSearchQuery] = useState("");
     const searchRef = useRef<HTMLInputElement>(null);
-    const { data: films, loading, error } = useFetch<Film[]>('/api/filmy?v=' + refreshKey);
+    const state = useFilmState();
+    const dispatch = useFilmDispatch();
 
-    useEffect(() => {
-        searchRef.current?.focus();
-    }, []);
-
-    const handleRefresh = () => {
-        setRefreshKey(prev => prev + 1);
-    };
-
-    const filteredFilms = films?.filter(film =>
-        film.title.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredFilms = state.films?.filter(film =>
+        film.title.toLowerCase().includes(state.query.toLowerCase())
     );
 
     return (
@@ -31,21 +21,16 @@ export default function FilmyPage() {
                     ref={searchRef}
                     type="text"
                     placeholder="Szukaj filmu..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={state.query}
+                    onChange={(e) => dispatch({type: "SET_QUERY", payload: e.target.value})}
                 />
-                <button
-                    onClick={handleRefresh}
-                >
-                    Odśwież
-                </button>
             </div>
 
-            {loading && <p>Ładowanie filmów...</p>}
+            {state.loading && <p>Ładowanie filmów...</p>}
 
-            {error && <p>Błąd: {error}</p>}
+            {state.error && <p>Błąd: {state.error}</p>}
 
-            {!loading && !error && (
+            {!state.loading && !state.error && (
                 <ul>
                     {filteredFilms && filteredFilms.length > 0 ? (
                         filteredFilms.map(film => (

@@ -1,17 +1,31 @@
 'use client'
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {useFetch} from "@/app/hooks/useFetch";
-import FavoriteButton from "@/app/components/FavoriteButton";
-import {Film} from "@/types/film";
+import FavoriteButton from "@/app/filmy/[id]/FavoriteButton";
+import {selectFilm} from "@/app/selectors/filmSelectors";
+import {useFilmDispatch, useFilmState} from "@/app/context/FilmContext";
+import {useEffect, useState} from "react";
+
 
 export default function FilmDetailsPage() {
     const params = useParams();
     const id = params.id;
-
+    const [isFavorite, setIsFavorite] = useState(false);
     // Pobieramy dane konkretnego filmu
-    const { data: film, loading, error } = useFetch<Film>(`/api/filmy/${id}`);
+    const state = useFilmState();
+    const dispatch = useFilmDispatch();
+    useEffect(() => {
+        setIsFavorite(state.favorites.includes(String(id)));
+    }, [id]);
 
+    const film = selectFilm(state, Number(id));
+    const handleFavoriteClick = () => {
+        dispatch({type: "TOGGLE_FAVORITE", payload: String(id)})
+        dispatch({type: "ADD_NOTIFICATION", payload:
+                {message: `Movie ${film?.title} was ${isFavorite ? 'Removed' : 'Added'} from favorites`,
+                type: 'success'}})
+        setIsFavorite(!isFavorite);
+    }
     return (
         <div>
             <Link
@@ -20,16 +34,16 @@ export default function FilmDetailsPage() {
                 ← Powrót do listy
             </Link>
 
-            {loading && (
+            {state.loading && (
                 <div>
                     <div></div>
                     <div></div>
                 </div>
             )}
 
-            {error && (
+            {state.error && (
                 <div>
-                    Nie udało się załadować danych filmu: {error}
+                    Nie udało się załadować danych filmu: {state.error}
                 </div>
             )}
 
@@ -40,7 +54,8 @@ export default function FilmDetailsPage() {
                             <h1>{film.title}</h1>
                             <p>{film.genre} • {film.year}</p>
                         </div>
-                        <FavoriteButton />
+                        <FavoriteButton isFavorite={isFavorite}
+                                        handleClick={handleFavoriteClick} />
                     </header>
 
                     <footer>

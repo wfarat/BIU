@@ -2,6 +2,8 @@
 import { useRouter } from 'next/navigation';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import {addFilm} from "@/app/actions/filmActions";
+import {useFilmDispatch} from "@/app/context/FilmContext";
 
 const FilmSchema = Yup.object().shape({
     title: Yup.string()
@@ -18,7 +20,7 @@ const FilmSchema = Yup.object().shape({
 
 export default function AddFilmPage() {
     const router = useRouter();
-
+    const dispatch = useFilmDispatch();
     const formik = useFormik({
         initialValues: {
             title: '',
@@ -28,18 +30,7 @@ export default function AddFilmPage() {
         validationSchema: FilmSchema,
         onSubmit: async (values) => {
             try {
-                const response = await fetch('/api/filmy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(values),
-                });
-
-                if (response.ok) {
-                    router.push('/filmy');
-                } else {
-                    const errorData = await response.json();
-                    alert(`Błąd: ${errorData.error}`);
-                }
+                addFilm(values, dispatch).then(id => router.push(`/filmy/${id}`));
             } catch (error) {
                 console.error('Submission error:', error);
             }
