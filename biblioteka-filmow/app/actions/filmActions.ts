@@ -1,63 +1,93 @@
-import { Film } from "@/types";
-import { Dispatch } from "react";
-import { FilmAction } from "@/app/reducers/filmReducer";
+'use server';
 
-export async function fetchData(
-    url: string,
-    dispatch: Dispatch<FilmAction>,
-    signal?: AbortSignal
-) {
-    dispatch({ type: 'FETCH_START' });
+import { z } from 'zod';
+import {revalidatePath, revalidateTag} from 'next/cache';
 
+export type ActionState = {
+    status: 'idle' | 'success' | 'error';
+    message?: string;
+    errors?: {
+        [key: string]: string[];
+    };
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+const filmSchema = z.object({
+    title: z.string()
+        .min(2, { message: 'Tytuł musi mieć co najmniej 2 znaki.' })
+        .max(100, { message: 'Tytuł może mieć maksymalnie 100 znaków.' }),
+    year: z.coerce.number({ message: 'Rok musi być liczbą.' })
+        .min(1888, { message: 'Rok musi być nie mniejszy niż 1888.' })
+        .max(2030, { message: 'Rok nie może być większy niż 2030.' }),
+    genre: z.string()
+        .min(1, { message: 'Gatunek jest wymagany.' })
+});
+
+export async function createFilm(
+    prevState: ActionState,
+    formData: FormData
+): Promise<ActionState> {
     try {
-        const response = await fetch(url, { signal });
+        const rawData = {
+            title: formData.get('title'),
+            year: formData.get('year'),
+            genre: formData.get('genre'),
+        };
 
-        if (!response.ok) {
-            throw new Error(`Error: ${response.status}`);
+        const validatedFields = filmSchema.safeParse(rawData);
+
+        if (!validatedFields.success) {
+            return {
+                status: 'error',
+                errors: validatedFields.error.flatten().fieldErrors,
+            };
         }
 
-        const result = await response.json();
-
-        const payload = Array.isArray(result) ? result : [result];
-
-        dispatch({
-            type: 'FETCH_SUCCESS',
-            payload: payload as Film[]
+        const response = await fetch(`${API_URL}/api/filmy`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(validatedFields.data),
         });
-    } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') return;
 
-        dispatch({
-            type: 'FETCH_ERROR',
-            payload: err instanceof Error ? err.message : "Unknown error"
-        });
+        if (!response.ok) {
+            throw new Error(`API zwróciło błąd: ${response.status}`);
+        }
+
+        revalidateTag('films', {});
+
+        return { status: 'success' };
+
+    } catch (error) {
+        console.error('Błąd podczas dodawania filmu:', error);
+        return {
+            status: 'error',
+            errors: { _form: ['Wystąpił nieoczekiwany błąd serwera podczas zapisywania filmu.'] }
+        };
     }
 }
 
-export async function addFilm(film: Record<string, string | number>, dispatch: Dispatch<FilmAction>) {
+export async function deleteFilmAction(filmId: string): Promise<ActionState> {
     try {
-        const response = await fetch('/api/filmy', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(film),
-        });
-        if (Math.random() > 0.5) throw new Error("Random error");
-        const newFilm = await response.json();
-        dispatch({
-            type: 'ADD_FILM',
-            payload: newFilm
-        });
-        dispatch({
-            type: 'ADD_NOTIFICATION',
-            payload: {message: `Film ${newFilm.title} added successfully`, type: 'success'}
+        console.log('Usuwanie filmu z ID:', filmId);
+        const response = await fetch(`${API_URL}/api/filmy/${filmId}`, {
+            method: 'DELETE',
         });
 
-        // @ts-ignore
-        return newFilm.id;
+        if (!response.ok) {
+            throw new Error(`API zwróciło błąd: ${response.status}`);
+        }
+
+        revalidatePath('/filmy');
+        return { status: 'success' };
+
     } catch (error) {
-        dispatch({
-            type: 'ADD_NOTIFICATION',
-            payload: {message: `Error adding film: ${error}`, type: 'error'}
-        })
+        console.error('Błąd podczas usuwania filmu:', error);
+        return {
+            status: 'error',
+            message: 'Wystąpił nieoczekiwany błąd serwera podczas usuwania filmu.'
+        };
     }
 }

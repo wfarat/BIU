@@ -1,53 +1,23 @@
-'use client'
-import {useRef} from 'react';
 import Link from 'next/link';
-import {useFilmDispatch, useFilmState} from "@/app/context/FilmContext";
+import FilmSearch from "@/app/components/FilmSearch";
+import {Film} from "@/types";
+import FilmListOptimistic from "@/app/components/FilmListOptimistic";
+export const revalidate = 60
+export default async function FilmyPage() {
+    const response = await fetch('http://localhost:3000/api/filmy', {
+        next: { tags: ['films'] }
+    });
 
-export default function FilmyPage() {
-    const searchRef = useRef<HTMLInputElement>(null);
-    const state = useFilmState();
-    const dispatch = useFilmDispatch();
+    if (!response.ok) {
+        throw new Error('Failed to fetch films');
+    }
 
-    const filteredFilms = state.films?.filter(film =>
-        film.title.toLowerCase().includes(state.query.toLowerCase())
-    );
-
+    const films = await response.json() as Film[];
     return (
         <div>
             <h1>Lista Filmów</h1>
-
-            <div>
-                <input
-                    ref={searchRef}
-                    type="text"
-                    placeholder="Szukaj filmu..."
-                    value={state.query}
-                    onChange={(e) => dispatch({type: "SET_QUERY", payload: e.target.value})}
-                />
-            </div>
-
-            {state.loading && <p>Ładowanie filmów...</p>}
-
-            {state.error && <p>Błąd: {state.error}</p>}
-
-            {!state.loading && !state.error && (
-                <ul>
-                    {filteredFilms && filteredFilms.length > 0 ? (
-                        filteredFilms.map(film => (
-                            <li key={film.id}>
-                                <Link
-                                    href={`/filmy/${film.id}`}
-                                >
-                                    {film.title}
-                                </Link>
-                                <span>({film.year})</span>
-                            </li>
-                        ))
-                    ) : (
-                        <p>Nie znaleziono filmów.</p>
-                    )}
-                </ul>
-            )}
+            <FilmListOptimistic films={films} />
+            <FilmSearch films={films}/>
 
             <Link href="/filmy/dodaj">Dodaj Film</Link>
         </div>

@@ -1,95 +1,95 @@
-'use client'
-import { useRouter } from 'next/navigation';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import {addFilm} from "@/app/actions/filmActions";
-import {useFilmDispatch} from "@/app/context/FilmContext";
+'use client';
 
-const FilmSchema = Yup.object().shape({
-    title: Yup.string()
-        .min(2, 'Tytuł musi mieć co najmniej 2 znaki')
-        .required('Pole wymagane'),
-    year: Yup.number()
-        .integer('Rok musi być liczbą całkowitą')
-        .min(1888, 'Najstarszy film powstał w 1888 roku')
-        .max(2030, 'Maksymalny rok to 2030')
-        .required('Pole wymagane'),
-    genre: Yup.string()
-        .required('Pole wymagane'),
-});
+import { useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {ActionState, createFilm} from '@/app/actions/filmActions';
+import SubmitButton from '@/app/components/SubmitButton';
+
+const initialState: ActionState = {
+    status: 'idle'
+};
 
 export default function AddFilmPage() {
     const router = useRouter();
-    const dispatch = useFilmDispatch();
-    const formik = useFormik({
-        initialValues: {
-            title: '',
-            year: 2024,
-            genre: '',
-        },
-        validationSchema: FilmSchema,
-        onSubmit: async (values) => {
-            try {
-                addFilm(values, dispatch).then(id => router.push(`/filmy/${id}`));
-            } catch (error) {
-                console.error('Submission error:', error);
-            }
-        },
-    });
+
+    const [state, formAction] = useActionState(createFilm, initialState);
+
+    useEffect(() => {
+        if (state?.status === 'success') {
+            router.push('/filmy');
+        }
+    }, [state, router]);
 
     return (
-        <div>
-            <h1>Dodaj Nowy Film</h1>
+        <div className="max-w-md mx-auto p-4">
+            <h1 className="text-2xl font-bold mb-4">Dodaj Nowy Film</h1>
 
-            <form onSubmit={formik.handleSubmit}>
+            {state?.status === 'error' && (
+                <div style={{ color: 'red', marginBottom: '1rem' }}>
+                    {state.message || 'Proszę poprawić błędy w formularzu.'}
+                    {state.errors?._form && <p>{state.errors._form.join(', ')}</p>}
+                </div>
+            )}
+
+            {state?.status === 'success' && (
+                <div style={{ color: 'green', marginBottom: '1rem' }}>
+                    Film został dodany pomyślnie! Przekierowywanie...
+                </div>
+            )}
+
+            <form action={formAction} className="flex flex-col gap-4">
+
                 <div>
-                    <label>Tytuł</label>
+                    <label htmlFor="title" className="block mb-1">Tytuł</label>
                     <input
+                        id="title"
                         name="title"
                         type="text"
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
-                        value={formik.values.title}
+                        className="border p-2 w-full"
                     />
-                    {formik.touched.title && formik.errors.title && (
-                        <div>{formik.errors.title}</div>
+                    {state?.errors?.title && (
+                        <div style={{ color: 'red', fontSize: '0.875rem' }}>
+                            {state.errors.title.join(', ')}
+                        </div>
                     )}
                 </div>
 
                 <div>
-                    <label>Rok produkcji</label>
+                    <label htmlFor="year" className="block mb-1">Rok produkcji</label>
                     <input
+                        id="year"
                         name="year"
                         type="number"
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
-                        value={formik.values.year}
+                        className="border p-2 w-full"
                     />
-                    {formik.touched.year && formik.errors.year && (
-                        <div>{formik.errors.year}</div>
+                    {state?.errors?.year && (
+                        <div style={{ color: 'red', fontSize: '0.875rem' }}>
+                            {state.errors.year.join(', ')}
+                        </div>
                     )}
                 </div>
 
                 <div>
-                    <label>Gatunek</label>
-                    <input
+                    <label htmlFor="genre" className="block mb-1">Gatunek</label>
+                    <select
+                        id="genre"
                         name="genre"
-                        type="text"
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
-                        value={formik.values.genre}
-                    />
-                    {formik.touched.genre && formik.errors.genre && (
-                        <div>{formik.errors.genre}</div>
+                        className="border p-2 w-full"
+                    >
+                        <option value="">-- Wybierz gatunek --</option>
+                        <option value="Dramat">Dramat</option>
+                        <option value="Sci-Fi">Sci-Fi</option>
+                        <option value="Komedia">Komedia</option>
+                        <option value="Horror">Horror</option>
+                    </select>
+                    {state?.errors?.genre && (
+                        <div style={{ color: 'red', fontSize: '0.875rem' }}>
+                            {state.errors.genre.join(', ')}
+                        </div>
                     )}
                 </div>
 
-                <button
-                    type="submit"
-                    disabled={formik.isSubmitting}
-                >
-                    {formik.isSubmitting ? 'Dodawanie...' : 'Zapisz Film'}
-                </button>
+                <SubmitButton />
             </form>
         </div>
     );

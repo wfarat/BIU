@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, Dispatch } from 'react';
+import React, {createContext, useContext, useReducer, useEffect, ReactNode, Dispatch, useState} from 'react';
 import { filmReducer, initialFilmState, FilmState, FilmAction } from '@/app/reducers/filmReducer';
 import { fetchData } from '@/app/actions/filmActions';
 
@@ -13,7 +13,8 @@ interface FilmProviderProps {
 
 export const FilmProvider = ({ children }: FilmProviderProps) => {
     const [state, dispatch] = useReducer(filmReducer, initialFilmState);
-
+    const [abc, setAbc] = useState<string>("abc"
+    );
     useEffect(() => {
         const controller = new AbortController();
         fetchData('/api/filmy', dispatch, controller.signal);
